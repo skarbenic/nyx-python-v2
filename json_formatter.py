@@ -9,7 +9,7 @@ def log_to_json(log_data, log_file='log.json'):
     formatted_time = current_time.strftime('%d-%m-%Y, %H:%M:%S')
     
     log_entry = {
-        'timestamp': formatted_time.isoformat(),
+        'timestamp': formatted_time,
         'log': log_data
     }
     
