@@ -9,14 +9,14 @@ import time
 client = TelegramClient('jan', c.api_id, c.api_hash)
 
 class TelegramHandler:
-    def __init__(self, api_id=c.api_id, api_hash=c.api_hash, channel_id=c.test_channel_id):
+    def __init__(self, api_id=c.api_id, api_hash=c.api_hash, channel_id=c.channel_id):
         self.client = TelegramClient('jan', api_id, api_hash)
         self.channel_id = channel_id
-        self.captured_symbol = ''
-        self.captured_action = ''
-        self.last_message_id = ''
+        self.captured_symbol = None
+        self.captured_action = None
+        self.last_message_id = None
         self.last_order_time = 0
-        self.COOLDOWN_PERIOD = 60
+        self.COOLDOWN_PERIOD = c.COOLDOWN_PERIOD
         self.binance_client = init_binance_client()
 
     def setup_telegram_handler(self):
@@ -27,23 +27,31 @@ class TelegramHandler:
             match = re.match(r'#(\w+)\s+([\w/]+)', message)
 
             if message:
-                if event.message.id == self.last_message_id and (current_time - self.last_order_time < self.COOLDOWN_PERIOD):
+                if self.last_message_id is not None and event.message.id == self.last_message_id and (current_time - self.last_order_time < self.COOLDOWN_PERIOD):
+                    log_to_json({'message': 'Duplicate detected within cooldown period, skipping message.'})
                     return
             if match:
-                captured_symbol = match.group(1)
-                captured_action = match.group(2)
+                self.captured_symbol = match.group(1)
+                self.captured_action = match.group(2)
+                valid_symbol = self.captured_symbol + "USDT"
+                if valid_symbol.upper() in c.blacklist:
+                    print(f'Symbol {valid_symbol} is blacklisted, ignoring the message. Check config.py for full blacklisted symbols.')
+                    return
+                
                 try: 
                     exchange_info = self.binance_client.futures_exchange_info()
                     symbols = [s['symbol'] for s in exchange_info['symbols']]
-                    valid_symbol = captured_symbol + 'USDT'
+                    valid_symbol = self.captured_symbol.upper() + 'USDT'
                     if valid_symbol in symbols:
-                        self.captured_symbol = captured_symbol
-                        self.captured_action = captured_action
-                        log_to_json({'symbol': self.captured_symbol, 'action': self.captured_action})
+                        log_to_json({
+                            'symbol': self.captured_symbol,
+                            'action': self.captured_action,
+                            'timestamp': time.strftime('%d-%m-%Y, %H:%M:%S')
+                        })
                         self.last_message_id = event.message.id # update the last message id so no duplicates
                         self.last_order_time = current_time
                     else:
-                        print(f'{captured_symbol} not found.')
+                        print(f'Error {self.captured_symbol} not found!')
                 except Exception as e:
                     print(f'Error checking symbol: {e}')
         return self.client

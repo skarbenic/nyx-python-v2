@@ -13,14 +13,19 @@ def log_to_json(log_data, log_file='log.json'):
         'log': log_data
     }
     
-    if os.path.exists(log_file):
-        with open(log_file, 'r') as file:
-            data = json.load(file)
-            data.append(log_entry)
+    if os.path.exists(log_file) and os.path.getsize(log_file) > 0:
+        try:
+            with open(log_file, 'r', encoding='utf-8') as file:
+                data = json.load(file)
+                if not isinstance(data, list):
+                    data = []
+        except (json.JSONDecodeError, ValueError):
+            data = []
     else:
-        data = [log_entry]
+        data = []
+    data.append(log_entry)
     
     with open(log_file, 'w') as file:
-        json.dump(data, file, indent=4)
+        json.dump(data, file, indent=4, ensure_ascii=False)
     print(f'Logged data: {log_entry}')
 
