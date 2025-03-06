@@ -18,10 +18,13 @@ class TelegramHandler:
         self.last_order_time = 0
         self.COOLDOWN_PERIOD = c.COOLDOWN_PERIOD
         self.binance_client = init_binance_client()
+        
 
     def setup_telegram_handler(self):
         @self.client.on(events.NewMessage(chats=self.channel_id))
         async def handle_new_message(event):
+            from place_future_order_class import PlaceFutureOrder
+            from get_usdt_class import GetUsdtBalance
             message = event.message.text
             current_time = time.time()
             match = re.match(r'#(\w+)\s+([\w/]+)', message)
@@ -33,8 +36,8 @@ class TelegramHandler:
             if match:
                 self.captured_symbol = match.group(1)
                 self.captured_action = match.group(2)
-                valid_symbol = self.captured_symbol + "USDT"
-                if valid_symbol.upper() in c.blacklist:
+                trading_pair = (self.captured_symbol + 'USDT').upper()
+                if trading_pair.upper() in c.blacklist:
                     print(f'Symbol {valid_symbol} is blacklisted, ignoring the message. Check config.py for full blacklisted symbols.')
                     return
                 
@@ -44,12 +47,21 @@ class TelegramHandler:
                     valid_symbol = self.captured_symbol.upper() + 'USDT'
                     if valid_symbol in symbols:
                         log_to_json({
-                            'symbol': self.captured_symbol,
-                            'action': self.captured_action,
+                            'symbol': (self.captured_symbol or '').upper(),
+                            'action': (self.captured_action or '').upper(),
                             'timestamp': time.strftime('%d-%m-%Y, %H:%M:%S')
                         })
                         self.last_message_id = event.message.id # update the last message id so no duplicates
                         self.last_order_time = current_time
+                        #Pass values from GetUsdtHandler
+                        usdt_handler = GetUsdtBalance()
+                        usdt_balance = await usdt_handler.fetch_usdt_balance()
+                        #Pass values from PlaceFutureOrder
+                        order = PlaceFutureOrder(trading_pair.upper(), self.captured_action, usdt_balance)
+                        await order.get_precision() #THIS IS IMPORTANT TO MAKE SURE PRECISION HAS A VALUE!
+                        quantity = order.calculate_quantity()
+                        await order.place_order(quantity)
+                        
                     else:
                         print(f'Error {self.captured_symbol} not found!')
                 except Exception as e:

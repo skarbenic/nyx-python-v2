@@ -30,5 +30,29 @@
             "action": "buy",
             "timestamp": "06-03-2025, 12:56:05"
         }
+    },
+    {
+        "message_received": "06-03-2025, 17:55:29.151",
+        "log": {
+            "symbol": "FIL",
+            "action": "SHORT",
+            "timestamp": "06-03-2025, 17:55:27"
+        }
+    },
+    {
+        "message_received": "06-03-2025, 18:46:48.523",
+        "log": {
+            "symbol": "BNB",
+            "action": "BUY",
+            "timestamp": "06-03-2025, 18:46:48"
+        }
+    },
+    {
+        "message_received": "06-03-2025, 18:47:58.381",
+        "log": {
+            "symbol": "BNB",
+            "action": "BUY",
+            "timestamp": "06-03-2025, 18:47:58"
+        }
     }
 ]

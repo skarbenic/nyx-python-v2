@@ -6,10 +6,10 @@ import pytz
 def log_to_json(log_data, log_file='log.json'):
     utc_plus_7 = pytz.timezone('Asia/Bangkok')
     current_time = datetime.now(pytz.utc).astimezone(utc_plus_7)
-    formatted_time = current_time.strftime('%d-%m-%Y, %H:%M:%S')
+    formatted_time = current_time.strftime('%d-%m-%Y, %H:%M:%S.%f')[:-3]
     
     log_entry = {
-        'timestamp': formatted_time,
+        'message_received': formatted_time,
         'log': log_data
     }
     
