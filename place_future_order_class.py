@@ -18,6 +18,8 @@ class PlaceFutureOrder:
         self.leverage = c.LEVERAGE 
         self.percentage = c.BUY_PERCENTAGE if self.side == 'BUY' else c.SHORT_PERCENTAGE
         self.precision = None
+        self.precision_info = None
+        
         
     async def get_precision(self):
         loop = asyncio.get_running_loop()       
@@ -35,21 +37,37 @@ class PlaceFutureOrder:
         raise ValueError(f"Trading pair {self.trading_pair} is not found in exchange info")
         
         
-    def calculate_quantity(self):
+    async def calculate_quantity(self):
         if self.precision is None:
-            raise ValueError("Precision has not received any value yet!")
-        amount_to_use = (self.usdt_balance * self.percentage)
-        quantity = (amount_to_use * self.leverage)
-        return round(quantity, self.precision)
+            raise ValueError("Precision has not received any value yet, Call get_precision first")
+        
+        if not isinstance(self.usdt_balance, (int, float)):
+            raise ValueError(f'usdt_balance must be a number, got {type(self.usdt_balance)}')
+        
+        #Use usdt_balance passed to __init__, no need to fetch
+        amount_to_use = self.usdt_balance * self.percentage
+        buying_power = amount_to_use * self.leverage
+        
+        #Async to get market price
+        loop = asyncio.get_running_loop()
+        ticker = await loop.run_in_executor(None, lambda: self.binance_client.futures_symbol_ticker)
+        price = float(ticker['price']) #e.g SOLUSDT price = 150 USDT per sol
+        quantity = buying_power / price
+        return round(quantity, self.precision)    
     
-    async def place_order(self):
+    async def place_order(self, quantity):
         try:
             loop = asyncio.get_running_loop()
+            # CHANGE THE LEVERAGE FIRST SO THE MATH IS MATHING
+            await loop.run_in_executor(executor, lambda: self.binance_client.futures_change_leverage(
+                symbol=self.trading_pair,
+                leverage=self.leverage
+            ))
             order = await loop.run_in_executor(executor,lambda: self.binance_client.futures_create_order(
                 symbol=self.trading_pair,
                 side=self.side,
                 type=ORDER_TYPE_MARKET,
-                quantity=self.calculate_quantity()
+                quantity=quantity
             ))
             print(f'Order placed: {order}')
             return order

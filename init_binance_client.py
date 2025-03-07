@@ -8,7 +8,7 @@ def get_binance_server_time():
     server_time = response.json().get('serverTime')
     return server_time
 
-def init_binance_client(api_key=c.channel_id, api_secret=c.binance_secret):
+def init_binance_client(api_key=c.binance_api, api_secret=c.binance_secret):
     server_time = get_binance_server_time()
     system_time = int(time.time() * 1000)
     time_offset = server_time - system_time #calculate time diff between binance server and local 

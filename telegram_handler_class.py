@@ -38,14 +38,14 @@ class TelegramHandler:
                 self.captured_action = match.group(2)
                 trading_pair = (self.captured_symbol + 'USDT').upper()
                 if trading_pair.upper() in c.blacklist:
-                    print(f'Symbol {valid_symbol} is blacklisted, ignoring the message. Check config.py for full blacklisted symbols.')
+                    print(f'Symbol {trading_pair} is blacklisted, ignoring the message. Check config.py for full blacklisted symbols.')
                     return
                 
                 try: 
                     exchange_info = self.binance_client.futures_exchange_info()
                     symbols = [s['symbol'] for s in exchange_info['symbols']]
-                    valid_symbol = self.captured_symbol.upper() + 'USDT'
-                    if valid_symbol in symbols:
+                    trading_pair = self.captured_symbol.upper() + 'USDT'
+                    if trading_pair in symbols:
                         log_to_json({
                             'symbol': (self.captured_symbol or '').upper(),
                             'action': (self.captured_action or '').upper(),
